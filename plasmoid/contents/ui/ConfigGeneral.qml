@@ -1,6 +1,8 @@
 /*
  *   Authour: Symeon Huang (librehat) <hzwhuang@gmail.com>
  *   Copyright 2014-2015
+ *   Author: Buba <tylkobuba@gmail.com>
+ *   Copyright 2017
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Library General Public License as
