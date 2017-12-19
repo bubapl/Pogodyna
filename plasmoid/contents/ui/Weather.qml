@@ -1,0 +1,204 @@
+/*
+ *   Author: Symeon Huang (librehat) <hzwhuang@gmail.com>
+ *   Copyright 2016
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 3 or
+ *   (at your option) any later version.
+ */
+
+import QtQuick 2.2
+import QtQuick.Layouts 1.1
+import QtQuick.Controls 1.2
+import org.kde.plasma.plasmoid 2.0
+import org.kde.plasma.core 2.0 as PlasmaCore
+import org.kde.plasma.components 2.0 as PlasmaComponents
+import "../code/icons.js" as FontSymbolTools
+
+Item {
+    width: units.gridUnit * 26 
+    height: units.gridUnit * 24 
+    Layout.minimumWidth: units.gridUnit * 18
+    Layout.minimumHeight: units.gridUnit * 20
+    clip: true
+
+    //UI block
+    PlasmaComponents.Label {
+        //top-left
+        id: cityname
+        visible: backend.hasdata
+        anchors { top: parent.top; left: parent.left }
+        text: "<strong>" + backend.m_city + "</strong><br />" + (backend.m_region ? backend.m_region + ", " : "") + backend.m_country
+    }
+
+    PlasmaComponents.Button {
+        id: refresh_button
+        anchors { top: parent.top; right: parent.right }
+        iconSource: "view-refresh"
+        tooltip: i18n("Refresh")
+        onClicked: action_reload()
+    }
+    
+    PlasmaComponents.Label {
+        //top-right
+        id: yahoo_n_date
+        visible: backend.hasdata
+        anchors { top: parent.top; right: refresh_button.left; rightMargin: units.gridUnit }
+        text: backend.m_pubDate + "<br /><a href='" + backend.m_link + "'>" + i18n("YAHOO! Weather") + "</a>"
+        horizontalAlignment: Text.AlignRight
+        font: theme.smallestFont
+        onLinkActivated: Qt.openUrlExternally(link)
+    }
+
+    Row {
+        id: conditionRow
+        visible: backend.hasdata
+        anchors.top: yahoo_n_date.bottom
+        width: parent.width
+        height: width / 3
+
+        Column {
+            id: conditionCol
+            width: parent.width / 2
+            height: parent.height
+            
+            PlasmaComponents.Label {
+                id: conditiontemp
+                text: backend.m_conditionTemp + "°" + backend.m_unitTemperature
+                height: parent.height - descLabel.implicitHeight
+                width: parent.width
+                minimumPointSize: theme.smallestFont.pointSize
+                font.pointSize: theme.defaultFont.pointSize * 10
+                font.weight: Font.Bold
+                fontSizeMode: Text.Fit
+            }
+
+            PlasmaComponents.Label {
+                id: descLabel
+                text: backend.m_conditionDesc + "<br />" + i18n("Feels like") + ": " + backend.m_windChill + "°" + backend.m_unitTemperature
+            }
+        }
+
+        PlasmaCore.IconItem {
+            visible: !plasmoid.configuration.useWxFonts 
+            id: conditionIcon
+            source: backend.m_conditionIcon
+            height: Math.min(conditionCol.height, 256)
+            width: height
+            anchors.verticalCenter: conditionCol.verticalCenter
+        }
+
+        PlasmaComponents.Label {
+            visible: plasmoid.configuration.useWxFonts 
+            height: parent.height
+            width: height
+            
+            anchors.top: parent.top
+            anchors.topMargin: 0
+
+            fontSizeMode: Text.Fit
+            
+            font.family: 'weathericons'
+            text: FontSymbolTools.getFontCode(backend.m_conditionIcon)
+            
+            opacity: 1.0 
+            
+            font.pixelSize: height
+            font.weight: Font.Bold
+            font.pointSize: -1
+        }
+    }
+
+    Row {
+        id: moredetails
+        visible: backend.hasdata
+        anchors { top: conditionRow.bottom; horizontalCenter: parent.horizontalCenter }
+        spacing: Math.max(6, (parent.width - firstDetail.width - secondDetail.width - thirdDetail.width) / 2)
+
+        PlasmaComponents.Label {
+            id: firstDetail
+            text: i18n("Sunrise") + ": " + backend.m_astronomySunrise + "<br />" + i18n("Sunset") + ": " + backend.m_astronomySunset
+            font: theme.defaultFont
+        }
+
+        PlasmaComponents.Label {
+            id: secondDetail
+            text: i18n("Humidity") + ": " + backend.m_atmosphereHumidity + "%<br />" + i18n("Pressure") + ": " + backend.m_atmosphereRising + backend.m_atmospherePressure + ' ' + backend.m_unitPressure
+            font: theme.defaultFont
+        }
+
+        PlasmaComponents.Label {
+            id: thirdDetail
+            text: i18n("Visibility") + ": " + (backend.m_atmosphereVisibility ? backend.m_atmosphereVisibility + ' ' + backend.m_unitDistance : i18n("NULL")) + "<br />" + i18n("Wind") + ": " + backend.m_windDirection + backend.m_windSpeed + ' ' + backend.m_unitSpeed
+            font: theme.defaultFont
+        }
+    }
+    
+    ListView {
+        id: forecastView
+        visible: backend.hasdata
+        anchors { top: moredetails.bottom; topMargin: units.gridUnit; left: parent.left; right: parent.right; bottom: parent.bottom }
+        orientation: ListView.Horizontal
+        model: backend.dataModel
+        delegate: ForecastDelegate {
+            height: forecastView.height
+            width: forecastView.width / 5
+        }
+    }
+
+    Row {
+        spacing: units.gridUnit
+        anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter }
+
+        PlasmaCore.IconItem {
+            visible: (!(backend.hasdata || backend.m_isbusy)) || backend.networkError
+            source: "dialog-error"
+            width: theme.mediumIconSize
+            height: width
+        }
+
+        PlasmaComponents.Label {
+            visible: (!(backend.hasdata || backend.m_isbusy)) || backend.networkError
+            text: backend.errstring ? backend.errstring : i18n("Unknown Error.")
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    Row {
+        spacing: units.gridUnit
+        anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter }
+
+        PlasmaComponents.BusyIndicator {
+            visible: backend.m_isbusy
+            running: backend.m_isbusy
+        }
+    }
+
+    Timer {
+        id: timer
+        interval: plasmoid.configuration.interval * 60000 //1m=60000ms
+        running: !backend.m_isbusy
+        repeat: true
+        onTriggered: action_reload()
+    }
+    
+    function action_reload () {
+        backend.query()
+    }
+    
+    Connections {
+        target: plasmoid.configuration
+        onWoeidChanged: action_reload()
+
+        //this signal is emitted when any unit checkbox changes
+        //binding multiple unit changed signals will cause a segfault
+        onMbrChanged: backend.reparse()
+    }
+
+    Component.onCompleted: {
+        if (!backend.haveQueried) {
+            action_reload()
+        }
+    }
+}
