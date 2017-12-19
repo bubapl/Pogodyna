@@ -17,10 +17,13 @@ Item {
     width: childrenRect.width
     height: childrenRect.height
 
+    property alias cfg_locationEntry: locationEntry.checked
+    property alias cfg_woeidEntry: woeidEntry.checked
     property alias cfg_woeid: woeidField.text
     property alias cfg_interval: intervalField.text
     property alias cfg_timeFormat24: timeFormat24Field.checked
     property alias cfg_useWxFonts: useWxFontsField.checked
+    property bool locChecked: plasmoid.configuration.locationEntry
 
     ColumnLayout {
         RowLayout {
