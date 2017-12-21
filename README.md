@@ -1,6 +1,6 @@
 # Pogodyna
-Pogodyna is a fork of librehst.yshooweather
+Pogodyna is a fork of librehat.yahooweather
 To do;
 - support accuweather
-- new ickns
+- new icons
 - maby more ;)
